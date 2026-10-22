@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "LCS 操作录制器（AoE4 回放工作台）",
+  "version": "1.0.0",
+  "description": "只记录你在页面上的操作坐标/按键/目标描述与网络请求元信息，导出给本地回放工作台回放。",
+  "permissions": ["activeTab", "scripting", "storage", "downloads", "nativeMessaging"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "开始 / 停止录制" },
+  "icons": {}
+}

@@ -1,0 +1,66 @@
+# ---- 运行期数据（不该进仓库）----
+data/config.json
+data/config.json.bak
+data/config.tmp
+data/replay.db
+data/replay.db-journal
+data/replay.db-wal
+data/replay.db-shm
+data/lcs_*.json
+data/library/
+data/replays/
+data/scripts/
+data/browser-profile/
+data/shot-profile/
+data/*.log
+data/*.out
+data/*.err
+data/extid.txt
+data/pack.err.txt
+
+# 服务端口指示文件（每次启动重写，见 run.py）
+data/port.txt
+
+# 候选下载地址台账：里面带着带签名的 SAS URL，有的还带 Authorization 头
+data/url-ledger.json
+
+# 复制/下载中途的临时文件
+data/*.tmp
+data/*.copying
+data/*.part
+data/*.partial
+
+# ---- 打包产物 ----
+data/lcs-recorder.crx
+native/com.lcs.aoe4recorder.json
+
+# 私钥：--key 指到别处时也得挡住，别只按路径忽略
+*.pem
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- 截图 / 诊断输出 ----
+data/*.png
+!data/civflags/*.png
+!data/mapthumbs/*.png
+
+# ---- 研究脚本产生的临时件 ----
+data/p_*.png
+data/p_*.txt

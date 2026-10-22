@@ -1,0 +1,21 @@
+# 统一换行符，别让 Windows/Linux 各拿一份不同字节的同一个文件。
+* text=auto
+
+# Windows 批处理必须是 CRLF：LF 的 .bat 在 cmd.exe 里会踩到 goto/label 解析的坑。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 其余源码统一 LF
+*.py   text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.html text eol=lf
+*.txt  text eol=lf
+*.yml  text eol=lf
+
+# 二进制：别做行尾转换，也别让 git 试图算文本 diff
+*.png  binary
+*.crx  binary
+*.pem  binary
+*.db   binary

@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AoE4 回放工作台</title>
+<style>
+:root{
+  --bg:#0b111b;          /* 页面底色，深蓝黑 */
+  --bg2:#0e1622;
+  --row:#101a27;
+  --row-hover:#16232f;
+  --line:#1e2c3c;
+  --line-soft:#182736;
+  --text:#dfe8f2;
+  --dim:#7f92a8;
+  --dim2:#5d6f85;
+  --gold:#d8b878;
+  --win:#54c08a;         /* AoE4World 胜局绿 */
+  --loss:#e05c5c;        /* 败局红 */
+  --link:#6fa8dc;
+  --blue:#132c46;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font:13px/1.55 "Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--link);text-decoration:none}
+button{font:inherit;color:inherit;background:transparent;border:none;cursor:pointer;padding:0}
+input,select{background:#0a121c;border:1px solid var(--line);border-radius:6px;color:var(--text);
+  padding:6px 10px;font:inherit;outline:none}
+input:focus,select:focus{border-color:#2f4a68}
+
+/* ---------- 顶部：模仿 AoE4World 的玩家横幅 ---------- */
+.topbar{background:#080d14;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.topbar-inner{max-width:1500px;margin:0 auto;display:flex;align-items:center;gap:16px;
+  padding:9px 22px;font-size:13px;color:var(--dim)}
+.brand{color:#fff;font-weight:700;letter-spacing:.3px;font-size:15px}
+.brand i{color:var(--gold);font-style:normal}
+.navitem{color:var(--dim);padding:4px 2px}
+.navitem:hover{color:#fff}
+.spacer{flex:1}
+
+.hero{
+  background:linear-gradient(180deg,rgba(11,17,27,.55) 0%,rgba(11,17,27,.92) 62%,var(--bg) 100%),
+             radial-gradient(900px 220px at 22% 0%,#1d3350 0%,transparent 70%);
+  border-bottom:1px solid var(--line-soft);
+}
+.hero-inner{max-width:1500px;margin:0 auto;padding:20px 22px 0}
+.hero h1{font-size:30px;margin:0 0 10px;letter-spacing:.5px;font-weight:600}
+.hero-meta{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:12px;margin-bottom:16px}
+/* 「MAINLY PLAYS XXX」那一段，模仿 AoE4World 的大写细字 + 前置文明旗 */
+.hero-main{display:inline-flex;align-items:center;gap:8px;letter-spacing:1.1px;
+  text-transform:uppercase;font-size:11.5px;color:#8fa3b8}
+.hero-main img{width:22px;height:22px;border-radius:3px;border:1px solid #2b3d52;
+  object-fit:cover;flex:none;box-shadow:0 1px 2px #0006}
+.hero-main b{color:#c6d4e4;font-weight:600;letter-spacing:.6px}
+.flag{border-radius:2px;overflow:hidden;line-height:0}
+.hero-tabs{display:flex;gap:22px;font-size:13px}
+.hero-tabs a{padding:9px 2px;color:var(--dim);border-bottom:2px solid transparent}
+.hero-tabs a.on{color:#fff;border-bottom-color:var(--gold)}
+.badge{display:inline-block;min-width:17px;padding:0 5px;border-radius:9px;background:#1d3149;
+  color:#8fb8dc;font-size:10.5px;line-height:16px;text-align:center;margin-left:5px}
+
+/* ---------- 主区 ---------- */
+main{max-width:1500px;margin:0 auto;padding:0 22px 60px}
+.panel{background:var(--bg2);border:1px solid var(--line-soft);border-radius:10px;margin-top:20px}
+.panel-head{display:flex;align-items:center;gap:14px;padding:15px 20px;border-bottom:1px solid var(--line-soft)}
+.panel-head h2{margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:9px}
+.panel-head .ico-badge{width:22px;height:22px;border-radius:50%;background:var(--blue);
+  display:grid;place-items:center;font-size:12px;color:var(--gold)}
+.filters{display:flex;gap:10px;margin-left:auto}
+.filters select{padding:6px 12px;border-radius:8px;font-size:12px;min-width:140px}
+
+/* 工具条 */
+.toolbar{display:flex;align-items:center;gap:9px;padding:11px 20px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.tb-btn{background:#14202e;border:1px solid var(--line);border-radius:7px;padding:5px 12px;font-size:12px;color:#c6d4e4}
+.tb-btn:hover{background:#1a2838;border-color:#2b3f55}
+.tb-btn.acc{background:#17301f;border-color:#2a5238;color:#a9e0bd}
+.tb-btn.acc:hover{background:#1e3d29}
+.tb-btn.rec{background:#2a1618;border-color:#55282c;color:#e0a9a9}
+.tb-btn.rec.on{background:#5a1f24;border-color:#8b353b;color:#ffd8d8}
+.tb-btn:disabled{opacity:.4;cursor:not-allowed}
+.count{color:var(--dim2);font-size:12px;margin-left:auto}
+/* 「最近 N 天缺的」下载组：一行内联，输入框窄一点 */
+.dlrecent{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--dim2);
+  border:1px solid var(--line);border-radius:7px;padding:2px 6px 2px 9px;background:#0f1a26}
+.dlrecent input{width:38px;padding:2px 4px;text-align:center;font-size:12px;
+  background:#0a121c;border:1px solid var(--line-soft);border-radius:5px}
+.dlrecent button{padding:3px 9px}
+/* 「能下几场」实时预估 */
+.dlpreview{font-size:11.5px;color:var(--gold);font-variant-numeric:tabular-nums;
+  padding-left:6px;white-space:nowrap}
+.dlpreview.zero{color:#7f8fa3}
+/* 分页条 */
+.pager{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--line-soft)}
+.pager .pginfo{font-size:12px;color:var(--dim2)}
+.pager .pginfo b{color:#c6d4e4;font-weight:500;font-variant-numeric:tabular-nums}
+
+/* 列表表头 */
+.head-row{
+  display:grid;align-items:center;
+  grid-template-columns:26px 208px 172px 40px 200px 62px 62px 200px 88px 92px;
+  gap:10px;padding:11px 20px;border-bottom:1px solid var(--line-soft);
+  font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim2);
+}
+.head-row .c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none}
+.head-row .c:hover{color:#a9bacd}
+
+/* 一行对局 */
+.grow{
+  display:grid;align-items:center;
+  grid-template-columns:26px 208px 172px 40px 200px 62px 62px 200px 88px 92px;
+  gap:10px;padding:14px 20px;border-bottom:1px solid var(--line-soft);
+  transition:background .12s;position:relative;
+}
+.grow:last-child{border-bottom:none}
+.grow:hover{background:var(--row-hover)}
+.grow.hide{display:none}
+
+/* 左侧胜负细条 */
+.grow .bar{position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0}
+.grow .bar.win{background:var(--win)}
+.grow .bar.loss{background:var(--loss)}
+
+/* 地图 */
+.mapcell{display:flex;align-items:center;gap:11px;min-width:0}
+.mapthumb{width:34px;height:34px;border-radius:6px;background:#16222f;border:1px solid #26374a;
+  object-fit:cover;flex:none}
+.maptext{min-width:0}
+.maptext b{display:block;font-size:13px;font-weight:600;color:#e8f0f8;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.maptext span{font-size:11.5px;color:var(--dim2)}
+
+/* 日期 */
+.datecell{font-size:12px;color:var(--dim)}
+.datecell a{display:block;color:var(--link);font-size:11.5px;margin-top:1px}
+.datecell a:hover{text-decoration:underline}
+
+/* 评分差 */
+.ratediff{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.15}
+.ratediff .dv{font-size:12px;color:var(--dim)}
+.ratediff .dv.up{color:#7fd6a0}
+.ratediff .dv.down{color:#e28d8d}
+.ratediff .av{font-size:10.5px;color:#5d6f85;font-variant-numeric:tabular-nums}
+
+/* 玩家列 */
+.players{display:flex;flex-direction:column;gap:5px;min-width:0}
+.prow{display:flex;align-items:center;gap:7px;font-size:12.5px;min-width:0;height:26px}
+.prow .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow.win .nm{color:var(--win)}
+.prow.loss .nm{color:var(--loss)}
+.prow.me .nm{color:var(--gold);font-weight:600}
+.prow .rt{color:var(--dim2);font-size:11.5px;flex:none;font-variant-numeric:tabular-nums}
+/* 旗帜：15px 太小，徽记看不清（图格鲁克/德里这种只有布纹的更像坏图），放到行高上限 */
+.civdot{width:22px;height:22px;border-radius:3px;flex:none;
+  border:1px solid #2b3d52;display:inline-block;box-shadow:0 1px 2px #0006}
+/* 没有旗帜时的两种兜底：有文明名 → 首字母色块；完全没数据 → 虚框问号 */
+.civdot-letter{display:grid;place-items:center;font-size:11px;line-height:1;font-weight:600;
+  color:#e8eef6;text-shadow:0 1px 1px #0008}
+.civdot-unknown{display:grid;place-items:center;font-size:11px;line-height:1;color:#5d6f85;
+  background:#0d1620;border:1px dashed #2f4256}
+
+.ratings{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#c2d1e0;font-variant-numeric:tabular-nums}
+.ratings.opp{text-align:right}
+.ratingcol{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:#c2d1e0;
+  font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.civcol{font-size:11.5px;color:#cdb98a;line-height:1.45;min-width:0;
+  white-space:normal;word-break:break-word}
+.ratingcol .rv{height:26px;display:flex;align-items:center;justify-content:flex-end}
+.ratingcol .rv.mine{color:#e8dcc0}
+/* 我方队首那颗“均分”徽标，挂在玩家列头顶，避免多占一行 */
+.players{position:relative}
+.avgchip{position:absolute;right:0;top:-2px;display:none}
+
+
+.oppcol{display:flex;flex-direction:column;gap:5px;font-size:12.5px;text-align:right}
+.oppcol .orow{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0;height:26px}
+.oppcol .onm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oppcol .orow.loss .onm{color:var(--loss)}
+.oppcol .orow.win .onm{color:var(--win)}
+
+/* 状态 + 操作 */
+.statuscell{font-size:11.5px}
+.st-done{color:#7fd6a0}
+.st-avail{color:#7fb2d8}
+.st-mid{color:#d8c58a}
+.st-bad{color:#e29090}
+.st-none{color:var(--dim2)}
+.prog{height:3px;background:#1a2735;border-radius:2px;overflow:hidden;margin-top:4px}
+.prog i{display:block;height:100%;background:var(--gold)}
+
+.actcell{display:flex;justify-content:flex-end;gap:5px}
+.act{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-size:12px;
+  color:#9fb3c8;background:#131f2c;border:1px solid #223347}
+.act:hover{background:#1b2b3b;color:#fff;border-color:#31506e}
+/* 收藏星标：未收藏是空心灰，已收藏是实心金 */
+.act.fav{color:#5d6f85;background:#101a26;border-color:#223347;font-size:14px;line-height:1}
+.act.fav:hover{color:#d8b878;border-color:#5a4a2a;background:#1e1a12}
+.act.fav.on{color:#d8b878;background:#241d10;border-color:#6a5424}
+/* 收藏页的备注块 */
+.favnote{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.favnote textarea{flex:1;min-width:0;min-height:44px;max-height:140px;resize:vertical;
+  background:#0a121c;border:1px solid var(--line-soft);border-radius:6px;color:#c6d4e4;
+  font:inherit;font-size:12px;line-height:1.5;padding:6px 8px;outline:none}
+.favnote textarea:focus{border-color:#2f4a68}
+.favnote .saveticks{font-size:10.5px;color:#5d6f85;white-space:nowrap;padding-top:3px}
+.favnote .saveticks.ok{color:#7fd6a0}
+.act.play{color:#a9e0bd;background:#152a1e;border-color:#274a34}
+.act.play:hover{background:#1d3728}
+.act.play.bad{color:#e0a0a0;background:#2a1719;border-color:#54282c}
+.act:disabled{opacity:.35;cursor:not-allowed}
+
+/* 侧栏 */
+.side{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+.sidebox{background:var(--bg2);border:1px solid var(--line-soft);border-radius:10px;padding:14px 16px;margin-top:20px}
+.sidebox h3{margin:0 0 9px;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--dim2);font-weight:500}
+.kv{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:#c6d4e4}
+.kv span:first-child{color:var(--dim)}
+.pathline{font-size:11px;color:var(--dim2);word-break:break-all;line-height:1.5}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.statbox{background:#0b1420;border:1px solid var(--line-soft);border-radius:8px;padding:9px 11px}
+.statbox b{display:block;font-size:19px;color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums}
+.statbox span{font-size:10.5px;color:var(--dim2)}
+.hint{font-size:11px;color:#6f8298;background:#0b1622;border-left:2px solid #263a52;
+  padding:7px 9px;border-radius:0 4px 4px 0;margin-top:9px;line-height:1.55}
+.qitem{font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--line-soft);color:#b9c9d9}
+.qitem:last-child{border-bottom:none}
+.qitem .sub{color:var(--dim2);font-size:10.5px}
+
+/* 弹层 */
+.toast{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:80}
+.toast div{background:#152231;border:1px solid #263a52;border-left:3px solid var(--gold);
+  padding:9px 13px;border-radius:7px;max-width:430px;font-size:12px;box-shadow:0 8px 28px #000a;color:#dfe8f2}
+dialog{background:#101a27;color:var(--text);border:1px solid #24374b;border-radius:11px;padding:20px;min-width:440px}
+dialog::backdrop{background:#000b}
+dialog h3{margin:0 0 13px;font-size:14px;font-weight:600}
+dialog label{display:block;font-size:11.5px;color:var(--dim);margin:9px 0 4px}
+dialog input{width:100%}
+.lblnote{color:#5d6f85;font-size:10.5px;margin-left:4px}
+.warnline{margin-top:8px;font-size:11.5px;color:#e0a9a9;background:#2a1618;
+  border-left:2px solid #8b353b;padding:6px 9px;border-radius:0 4px 4px 0}
+.empty{padding:52px;text-align:center;color:var(--dim2);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="brand">AoE4<i>·</i>Replay</span>
+    <span class="navitem">Leaderboard</span>
+    <span class="navitem">Explorer</span>
+    <span class="navitem">Statistics</span>
+    <span class="navitem">Esports</span>
+    <span class="spacer"></span>
+    <span id="api" class="navitem">同步中…</span>
+    <span id="game" class="navitem">游戏未运行</span>
+    <button class="tb-btn rec" id="btn-rec" style="font-size:11.5px;padding:4px 10px">录制操作</button>
+    <button class="tb-btn" id="btn-actor" style="font-size:11.5px;padding:4px 10px">浏览器面板</button>
+    <button class="tb-btn" id="btn-refresh" style="font-size:11.5px;padding:4px 10px">刷新</button>
+    <button class="tb-btn" id="btn-settings" style="font-size:11.5px;padding:4px 10px">设置</button>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1 id="who">—</h1>
+    <div class="hero-meta">
+      <span class="flag" id="flag"></span>
+      <span id="hero-country"></span>
+      <span style="color:#31424f">|</span>
+      <span id="hero-main">—</span>
+    </div>
+    <div class="hero-tabs">
+      <a id="link-overview" target="_blank">Overview</a>
+      <a class="on" id="tab-ranked" style="cursor:pointer">Games</a>
+      <a id="tab-custom" style="cursor:pointer">自定义对局 <span id="custom-badge" class="badge">0</span></a>
+      <a id="tab-fav" style="cursor:pointer">已收藏对局 <span id="fav-badge" class="badge">0</span></a>
+      <a id="link-challenges" target="_blank">Challenges</a>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="side">
+    <div>
+      <div class="panel" id="panel-custom" style="display:none">
+        <div class="panel-head">
+          <h2><span class="ico-badge">◈</span>自定义 / 非排位对局</h2>
+          <div class="filters">
+            <input id="custom-id" placeholder="粘贴对局 ID 或 M_xxx.gz 地址" style="width:230px;font-size:12px;padding:6px 10px"
+                   title="会自动下载这场（约 0.7~1.2 MB）并解析出玩家、地图、模式">
+            <button class="tb-btn acc" id="btn-custom-add" style="padding:6px 12px" title="下载并发解析这场对局">加入并解析</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="tb-btn acc" id="btn-watch">开始监听对局 ID</button>
+          <button class="tb-btn acc" id="btn-custom-dl">下载选中</button>
+          <button class="tb-btn" id="btn-custom-dlall">下载全部缺失</button>
+          <button class="tb-btn rec" id="btn-custom-remove" title="只从列表移除，不删本地文件">从列表移除</button>
+          <button class="tb-btn" id="btn-custom-restore" style="display:none" title="把之前移除的条目全部放回列表">恢复已移除</button>
+          <span class="count" id="custom-sel">已选 0</span>
+          <select id="f-owner" style="font-size:12px;padding:5px 10px;border-radius:6px">
+            <option value="all">全部号主</option>
+            <option value="mine">我的对局</option>
+            <option value="other">别人的对局</option>
+            <option value="unknown">无法判断</option>
+          </select>
+          <select id="f-pack" style="font-size:12px;padding:5px 10px;border-radius:6px" title="按玩法包筛选（回放里只有 pack_id，名字是手动命名的）">
+            <option value="all">全部玩法</option>
+          </select>
+          <span style="font-size:11.5px;color:var(--dim2)">号主靠回放文件里的 Steam ID 判定（不依赖服务器）。玩法名点击可改。</span>
+          <span class="count" id="custom-count"></span>
+        </div>
+        <div id="custom-rows"></div>
+        <div id="custom-empty" class="empty" style="display:none">没有自定义对局记录</div>
+      </div>
+
+      <div class="panel" id="panel-fav" style="display:none">
+        <div class="panel-head">
+          <h2><span class="ico-badge">★</span>已收藏对局</h2>
+          <div class="filters">
+            <input id="fav-q" placeholder="搜索地图 / 玩家 / 我的备注…" style="width:250px;font-size:12px;padding:6px 10px">
+          </div>
+        </div>
+        <div class="toolbar">
+          <span style="font-size:11.5px;color:var(--dim2)">
+            在「Games」「自定义对局」里点 ☆ 收藏；这里的备注是这个界面专属的，随便写。
+          </span>
+          <span class="count" id="fav-count"></span>
+        </div>
+        <div id="fav-rows"></div>
+        <div id="fav-empty" class="empty" style="display:none">还没有收藏。去 Games 或自定义对局里点一下 ☆</div>
+      </div>
+
+      <div class="panel" id="panel-ranked">
+        <div class="panel-head">
+          <h2><span class="ico-badge">⟲</span>All Games</h2>
+          <div class="filters">
+            <select id="f-mode"><option value="">All Modes</option></select>
+            <select id="f-civ"><option value="">All Civilizations</option></select>
+            <select id="f-map"><option value="">All Maps</option></select>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <button class="tb-btn acc" id="btn-dl">下载选中</button>
+          <span class="dlrecent" title="只挑最近这些天里、本地还没有的对局；填好天数会实时显示能下几场">
+            <span>最近</span>
+            <input id="dl-days" value="7" inputmode="numeric" title="天数，0 = 不限">
+            <span>天缺的</span>
+            <input id="dl-limit" value="20" inputmode="numeric" title="最多下几场，0 = 不限">
+            <span>场</span>
+            <button class="tb-btn" id="btn-recent">下载</button>
+            <span class="dlpreview" id="dl-preview">—</span>
+          </span>
+          <button class="tb-btn" id="btn-retry">重试失败</button>
+          <button class="tb-btn" id="btn-cancel">清空队列</button>
+          <input id="q" placeholder="搜索地图 / 对手 / 文明…" style="width:200px;font-size:12px;padding:5px 10px">
+          <span class="count" id="count"></span>
+        </div>
+
+        <div class="head-row">
+          <div><input type="checkbox" id="chk-all" style="accent-color:var(--gold)"></div>
+          <div class="c" data-sort="map">Map / Mode / Duration</div>
+          <div class="c" data-sort="started_at">Date</div>
+          <div class="c" data-sort="average_rating" id="hdr-avg" title="按队伍平均分排序">Δ</div>
+          <div>Player(s)</div>
+          <div class="c">Rating</div>
+          <div class="c">Rating</div>
+          <div>Opponent(s)</div>
+          <div class="c" data-sort="status">状态</div>
+          <div style="text-align:right">操作</div>
+        </div>
+
+        <div id="rows"></div>
+        <div id="empty" class="empty" style="display:none">没有符合条件的对局</div>
+
+        <!-- 分页：AoE4World 每页 50 场，往下翻的时候追加，不重排 -->
+        <div class="pager" id="pager">
+          <button class="tb-btn acc" id="btn-more">加载更多（下一页 50 场）</button>
+          <button class="tb-btn" id="btn-more5">再翻 5 页</button>
+          <span class="pginfo" id="pginfo"></span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebox" style="margin-top:20px">
+        <h3>概览</h3>
+        <div class="statgrid">
+          <div class="statbox"><b id="s-games">0</b><span>对局</span></div>
+          <div class="statbox"><b id="s-owned">0</b><span>本地已有</span></div>
+          <div class="statbox"><b id="s-missing">0</b><span>缺</span></div>
+          <div class="statbox"><b id="s-queue">0</b><span>队列</span></div>
+        </div>
+        <div class="hint" style="margin-top:11px">勾选对局 → 「下载选中」，或直接点任意一行的 ▶ 自动下载并启动。</div>
+      </div>
+
+      <div class="sidebox">
+        <h3>下载过滤</h3>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12px;color:#c6d4e4;padding:3px 0">
+          <input type="radio" name="st" value="all" checked style="accent-color:var(--gold)"> 全部
+        </label>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12px;color:#c6d4e4;padding:3px 0">
+          <input type="radio" name="st" value="missing" style="accent-color:var(--gold)"> 只有缺的
+        </label>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12px;color:#c6d4e4;padding:3px 0">
+          <input type="radio" name="st" value="downloaded" style="accent-color:var(--gold)"> 只有已有的
+        </label>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12px;color:#c6d4e4;padding:3px 0;margin-top:6px">
+          <input type="checkbox" id="f-win" style="accent-color:var(--gold)"> 只看胜局
+        </label>
+      </div>
+
+      <div class="sidebox">
+        <h3>队列</h3>
+        <div id="queue"><div class="sub" style="color:var(--dim2);font-size:11.5px">空</div></div>
+      </div>
+
+      <div class="sidebox">
+        <h3>最近启动</h3>
+        <div id="lastplay"><span class="pathline">还没有启动过</span></div>
+      </div>
+
+      <div class="sidebox">
+        <h3>路径</h3>
+        <div class="pathline" id="paths"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- 录制面板 -->
+<dialog id="dlg-rec" style="min-width:min(1080px,92vw)">
+  <h3>录制 / 拟人回放　<span class="pathline" id="rec-hint"></span></h3>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    <button class="tb-btn rec" id="rec-toggle">● 开始录制</button>
+    <button class="tb-btn" id="rec-save">保存脚本</button>
+    <button class="tb-btn" id="rec-clear">清空</button>
+    <button class="tb-btn" id="rec-ping">补抓 0.5s</button>
+    <span style="flex:1"></span>
+    <label style="margin:0;font-size:12px"><input type="radio" name="mmode" value="script" checked> 脚本级</label>
+    <label style="margin:0;font-size:12px"><input type="radio" name="mmode" value="visual"> 视觉级</label>
+    <label style="margin:0;font-size:12px"><input type="radio" name="mmode" value="both"> 双轨</label>
+    <label style="margin:0;font-size:12px">倍速 <input id="mmode-speed" value="1" style="width:44px"></label>
+    <button class="tb-btn acc" id="mm-play">▶ 回放</button>
+    <button class="tb-btn" id="mm-stop">停止</button>
+  </div>
+  <div class="prog" style="height:4px"><i id="mm-bar" style="width:0%"></i></div>
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:16px;margin-top:12px">
+    <div>
+      <h3 style="margin-bottom:7px">动作流 <span class="pathline" id="rec-stats"></span></h3>
+      <div id="rec-steps" style="background:#0b1420;border:1px solid var(--line-soft);border-radius:8px;padding:10px;min-height:200px;max-height:48vh;overflow:auto"></div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:7px">已保存脚本</h3>
+      <div id="rec-scripts" style="background:#0b1420;border:1px solid var(--line-soft);border-radius:8px;padding:10px;min-height:200px;max-height:48vh;overflow:auto"></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-top:14px">
+    <button class="tb-btn" onclick="document.getElementById('dlg-rec').close()">关闭</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-settings">
+  <h3>设置</h3>
+  <label>玩家 ID（AoE4World profile_id）</label><input id="set-profile">
+  <label>Steam ID<span class="lblnote">（号主判定用，17 位数字；填错会让所有对局判成「无法判断」）</span></label><input id="set-steamid">
+  <label>Steam.exe</label><input id="set-steam">
+  <label>界面浏览器 exe<span class="lblnote">（打开界面用，任意浏览器都行，可填 Firefox）</span></label><input id="set-ui-browser">
+  <label>面板浏览器 exe<span class="lblnote">（浏览器面板 / 录制用，必须 Chromium 系：Chrome / Edge / Brave）</span></label><input id="set-actor-browser">
+  <div class="warnline" id="cdp-warn" style="display:none">面板浏览器不支持 CDP，浏览器面板和录制会不可用</div>
+  <label>下载目录<span class="lblnote">（中转：下载先落这里，再投送进 playback）</span></label><input id="set-download">
+  <label>回放库<span class="lblnote">（分类归档用）</span></label><input id="set-library">
+  <label>playback 目录<span class="lblnote">（投送目标 + rogue 扫描）</span></label><input id="set-playback">
+  <label>network 目录<span class="lblnote" id="net-note">（自定义对局主要来源）</span></label><input id="set-network">
+  <label>轮询间隔（秒）<span class="lblnote">（空闲自动刷新，0 = 关闭）</span></label><input id="set-poll">
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:15px">
+    <button class="tb-btn" onclick="document.getElementById('dlg-settings').close()">取消</button>
+    <button class="tb-btn acc" id="btn-save">保存</button>
+  </div>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, cls, txt) => { const e = document.createElement(t); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+let STATE = null, selected = new Set(), sortKey = 'started_at', sortDir = -1, lastFetch = 0, REC_ACTIONS = [], REC = null;
+let FAV_IDS = new Set();      // 当前收藏的 game_id（前端缓存，来自 /api/state）
+let VISIBLE_IDS = [];         // 当前筛选+排序后真正渲染出来的 game_id（「全选」只认这个）
+let ENRICH_TRIED = new Set(); // 自定义页已经补查过的 game_id，避免无限补查
+let WATCHING = new Map();     // game_id → 观察定时器（同一局只有一个）
+let customSel = new Set();    // 自定义页的勾选（key 形式："g:<id>" 或 "p:<path>"）
+
+function toast(msg, ms = 3200) {
+  const d = el('div', null, msg); $('#toast').appendChild(d); setTimeout(() => d.remove(), ms);
+}
+async function api(path, body) {
+  const opt = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  const txt = await r.text();
+  let data; try { data = JSON.parse(txt); } catch { data = txt; }
+  if (!r.ok) throw new Error((data && data.message) || (data && data.detail) || ('HTTP ' + r.status));
+  return data;
+}
+const MODE_LABEL = { qm_1v1:'QM 1v1', qm_2v2:'QM 2v2', qm_3v3:'QM 3v3', qm_4v4:'QM 4v4', qm_ffa:'QM FFA',
+  rm_1v1:'RM 1v1', rm_2v2:'RM 2v2', rm_3v3:'RM 3v3', rm_4v4:'RM 4v4', rm_team:'RM Team', qm_4v4_ew:'QM EW 4v4' };
+const modeLabel = k => MODE_LABEL[k] || k;
+const civColors = { english:'#8a6d3b', french:'#3a5f9e', rus:'#4a7c59', mongols:'#a35a2a',
+  chinese:'#b34a4a', holy_roman_empire:'#8a7a3b', abbasid_dynasty:'#3f7a6a', delhi_sultanate:'#a8842f',
+  japanese:'#8f3b5a', byzantines:'#5a4a8a', malians:'#7a5a2a', ottomans:'#7a3a3a',
+  ayyubids:'#7a6a2a', jeanne_darc:'#9a5a2a', zhu_xis_legacy:'#6a4a2a', order_of_the_dragon:'#4a5a7a',
+  tughlaq_dynasty:'#8a6a4a', house_of_lancaster:'#8a4a4a', sengoku_daimyo:'#5a3a4a',
+  macedonian_dynasty:'#6a5a8a', knights_templar:'#a8a8a8', golden_horde:'#a08030' };
+const civColor = c => civColors[c] || '#4a5a6a';
+const MAP_SLUG = m => (m || '').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+
+function statusCell(r) {
+  if (r.owned) { const s = el('span', 'st-done', '✓ 已下载'); return s; }
+  const j = r.job;
+  if (!j) { const s = el('span', 'st-avail', '可下载'); s.title = '点右侧 ▶ 自动下载并启动'; return s; }
+  if (j.status === 'downloading') {
+    const box = el('div');
+    box.appendChild(el('span', 'st-mid', `下载 ${j.percent}%`));
+    const bar = el('div', 'prog'); const i = el('i'); i.style.width = j.percent + '%'; bar.appendChild(i); box.appendChild(bar);
+    return box;
+  }
+  const map = { queued:'排队中', resolving:'查地址…', error:'失败', missing:'无副本', done:'已下载' };
+  const cls = j.status === 'error' ? 'st-bad' : j.status === 'missing' ? 'st-none' : 'st-mid';
+  const wrap = el('div');
+  wrap.appendChild(el('span', cls, map[j.status] || j.status));
+  if (j.message) wrap.appendChild(el('div', 'st-none', j.message.slice(0, 40)));
+  return wrap;
+}
+
+function render() {
+  if (!STATE) return;
+  const cfg = STATE.config;
+  $('#who').textContent = cfg.profile_name || '—';
+  // 玩家链接跟着配置走，别把某个人的 profile_id 写死在 HTML 里
+  const pid = cfg.profile_id;
+  const ov = $('#link-overview'), ch = $('#link-challenges');
+  if (ov) ov.href = `https://aoe4world.com/players/${pid}`;
+  if (ch) ch.href = `https://aoe4world.com/players/${pid}/challenges`;
+  renderHero();
+  const ap = $('#api');
+  ap.textContent = STATE.api.ok ? `同步 · ${STATE.api.message}` : '离线 · 缓存';
+  ap.style.color = STATE.api.ok ? '#6a9a7a' : '#b06a6a';
+  const g = $('#game');
+  g.textContent = STATE.game_running ? '游戏运行中' : '游戏未运行';
+  g.style.color = STATE.game_running ? '#d8a86a' : '#5d6f85';
+
+  $('#s-games').textContent = STATE.totals.games;
+  $('#s-owned').textContent = STATE.totals.owned;
+  $('#s-missing').textContent = STATE.totals.missing;
+  $('#s-queue').textContent = STATE.queue.jobs.filter(j => ['queued','resolving','downloading'].includes(j.status)).length;
+
+  // 过滤器选项
+  const fillSel = (sel, label, items) => {
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">${escHtml(label)}</option>` + items.map(([v,t]) => `<option value="${escHtml(v)}">${escHtml(t)}</option>`).join('');
+    sel.value = cur;
+  };
+  const modes = {}; const civs = {}; const maps = {};
+  STATE.games.forEach(r => {
+    modes[r.kind] = (modes[r.kind]||0)+1;
+    if (r.me && r.me.civ_zh) civs[r.me.civ_zh] = (civs[r.me.civ_zh]||0)+1;
+    if (r.map) maps[r.map] = (maps[r.map]||0)+1;
+  });
+  if ($('#f-mode').options.length <= 1) fillSel($('#f-mode'), 'All Modes', Object.keys(modes).sort().map(k => [k, `${modeLabel(k)}`]));
+  if ($('#f-civ').options.length <= 1) fillSel($('#f-civ'), 'All Civilizations', Object.keys(civs).sort().map(k => [k, k]));
+  if ($('#f-map').options.length <= 1) fillSel($('#f-map'), 'All Maps', Object.keys(maps).sort().map(k => [k, k]));
+
+  // 队列
+  const qbox = $('#queue'); qbox.innerHTML = '';
+  const jobs = STATE.queue.jobs.slice(0, 8);
+  if (!jobs.length) qbox.innerHTML = '<div class="pathline">空</div>';
+  jobs.forEach(j => {
+    const d = el('div', 'qitem');
+    d.innerHTML = `<b>#${j.game_id}</b> ${escHtml((j.label||'').slice(0,24))}<div class="sub">${escHtml(j.status)}${j.total?' · '+j.percent+'%':''}${j.message?' · '+escHtml(j.message):''}</div>`;
+    qbox.appendChild(d);
+  });
+
+  const lp = $('#lastplay');
+  if (STATE.last_play) {
+    const ok = STATE.last_play.ok;
+    lp.innerHTML = `<div class="kv"><span>${ok?'已启动':'未启动'}</span><b>${STATE.last_play.game_id||''}</b></div>
+      <div class="pathline">${(STATE.last_play.command||STATE.last_play.message||'').replace(/</g,'&lt;')}</div>`;
+  }
+  $('#paths').innerHTML = ['playback','回放库','下载'].map((k,i) => {
+    const v = [cfg.playback_dir, cfg.library_dir, cfg.download_dir][i];
+    return `<div style="margin-bottom:5px"><span style="color:#4d5f74">${k}</span><br>${v}</div>`;
+  }).join('');
+
+  // 过滤
+  const q = $('#q').value.trim().toLowerCase();
+  const st = (document.querySelector('input[name=st]:checked')||{}).value || 'all';
+  const onlyWin = $('#f-win').checked;
+  const fm = $('#f-mode').value, fc = $('#f-civ').value, fmap = $('#f-map').value;
+  let rows = STATE.games.filter(r => {
+    if (fm && r.kind !== fm) return false;
+    if (fc && (!r.me || r.me.civ_zh !== fc)) return false;
+    if (fmap && r.map !== fmap) return false;
+    if (st === 'missing' && r.owned) return false;
+    if (st === 'downloaded' && !r.owned) return false;
+    if (onlyWin && (!r.me || r.me.result !== 'win')) return false;
+    if (q) {
+      const hay = [r.map, r.kind, r.server, (r.me&&r.me.civ_zh)||'', ...(r.mates||[]), ...(r.opponents||[])].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  rows.sort((a,b) => {
+    let A = a[sortKey], B = b[sortKey];
+    if (sortKey === 'status') { A = a.owned?1:0; B = b.owned?1:0; }
+    if (A == null) A = ''; if (B == null) B = '';
+    return (A>B?1:A<B?-1:0) * sortDir;
+  });
+  $('#count').textContent = `${rows.length} / ${STATE.games.length}`;
+  VISIBLE_IDS = rows.map(r => r.game_id);
+  renderPager();
+  recentPreview();
+
+  const tb = $('#rows'); tb.innerHTML = '';
+  $('#empty').style.display = rows.length ? 'none' : 'block';
+
+  for (const r of rows) {
+    const row = el('div', 'grow');
+    // 胜负条
+    if (r.me) { const b = el('div', 'bar ' + (r.me.result === 'win' ? 'win' : 'loss')); row.appendChild(b); }
+
+    // 勾选
+    const c0 = el('div');
+    const cb = el('input'); cb.type = 'checkbox'; cb.checked = selected.has(r.game_id);
+    cb.style.accentColor = 'var(--gold)';
+    cb.onchange = () => { cb.checked ? selected.add(r.game_id) : selected.delete(r.game_id); };
+    c0.appendChild(cb); row.appendChild(c0);
+
+    // 地图 / 模式 / 时长
+    const c1 = el('div', 'mapcell');
+    const img = el('img', 'mapthumb');
+    if (r.map_thumb) {
+      img.src = r.map_thumb;
+      img.onerror = () => { img.style.visibility = 'hidden'; };
+    } else {
+      // 没有缩略图就用地名首字母色块，不要留空
+      img.style.visibility = 'hidden';
+    }
+    const mt = el('div', 'maptext');
+    mt.appendChild(el('b', null, r.map || ''));
+    mt.appendChild(el('span', null, `${modeLabel(r.kind)}  ${r.duration_text}  ${r.server || ''}`));
+    c1.appendChild(img); c1.appendChild(mt); row.appendChild(c1);
+
+    // 日期
+    const c2 = el('div', 'datecell');
+    c2.appendChild(el('div', null, relTime(r.started_at)));
+    const a = el('a', null, 'View Summary');
+    a.href = r.site_url; a.target = '_blank';
+    c2.appendChild(a); row.appendChild(c2);
+
+    // 评分差 + 均分（AoE4World 把 Δ 和均分放同一格，上小下大）
+    const c3 = el('div', 'ratediff');
+    if (r.me && r.me.rating_diff != null) {
+      const d = el('div', 'dv' + (r.me.rating_diff > 0 ? ' up' : r.me.rating_diff < 0 ? ' down' : ''));
+      d.textContent = (r.me.rating_diff > 0 ? '↑ ' : r.me.rating_diff < 0 ? '↓ ' : '') + Math.abs(r.me.rating_diff);
+      c3.appendChild(d);
+    }
+    if (r.average_rating) {
+      const avg = el('div', 'av', r.average_rating);
+      avg.title = '队伍平均分';
+      c3.appendChild(avg);
+    }
+    row.appendChild(c3);
+
+    // 玩家列：我方 + 队友，每人一行；队首放均分徽标，和右侧评分列逐行对齐
+    const c4 = el('div', 'players');
+    c4.appendChild(playerRow(r.me, 'me'));
+    (r.matesRaw || []).forEach(m => c4.appendChild(playerRow(m, '')));
+    row.appendChild(c4);
+
+    // 我方评分列
+    const c5 = el('div', 'ratingcol');
+    c5.appendChild(el('div', 'rv mine', r.me ? (r.me.rating || '') : ''));
+    (r.matesRaw || []).forEach(m => c5.appendChild(el('div', 'rv', m.rating || '')));
+    row.appendChild(c5);
+
+    // 对手评分列（与对手列逐行对齐，行数取两边较大值）
+    const opps = r.opponents || [];
+    const n = Math.max(opps.length, 1);
+    const c6 = el('div', 'ratingcol');
+    for (let i = 0; i < n; i++) {
+      const d = el('div', 'rv');
+      d.textContent = opps[i] ? (opps[i].rating || '') : '';
+      c6.appendChild(d);
+    }
+    row.appendChild(c6);
+
+    // 对手列
+    const c7 = el('div', 'oppcol');
+    opps.forEach(o => {
+      const d = el('div', 'orow ' + (o.result === 'win' ? 'win' : 'loss'));
+      d.appendChild(el('span', 'onm', o.name || ''));
+      d.appendChild(civIcon(o.civ, o.civ_icon));
+      c7.appendChild(d);
+    });
+    row.appendChild(c7);
+
+    // 状态
+    const c8 = el('div', 'statuscell'); c8.appendChild(statusCell(r)); row.appendChild(c8);
+
+    // 操作
+    const c9 = el('div', 'actcell');
+    const blocked = r.version_blocked || (r.playable === false);
+    const bp = el('button', 'act play' + (blocked ? ' bad' : ''), '▶');
+    bp.title = blocked
+      ? `版本 ${r.patch} ≠ 客户端 ${r.client_build}，游戏会忽略`
+      : (r.owned ? '启动回放' : '自动下载并启动回放');
+    bp.onclick = () => play(r.game_id);
+    const bd = el('button', 'act', '⭳');
+    bd.title = r.owned ? '重新下载' : '只下载，不启动';
+    bd.onclick = () => download([r.game_id], r.owned);
+    const bw = el('button', 'act', '↗');
+    bw.title = '在浏览器面板打开这场的 AoE4World 页面';
+    bw.onclick = () => api('/api/actor/open', { game_id: r.game_id }).then(x => toast(x.hint || x.url)).catch(e => toast(e.message));
+    const bf = favButton(r.game_id);
+    c9.appendChild(bf); c9.appendChild(bp); c9.appendChild(bd); c9.appendChild(bw); row.appendChild(c9);
+
+    tb.appendChild(row);
+  }
+}
+
+// 收藏星标按钮：任何有 game_id 的列表都能用
+function favButton(gid) {
+  const on = FAV_IDS.has(gid);
+  const b = el('button', 'act fav' + (on ? ' on' : ''), on ? '★' : '☆');
+  b.title = on ? '取消收藏' : '收藏这一场（可在「已收藏对局」里写备注）';
+  b.onclick = async (ev) => {
+    ev.stopPropagation();
+    try {
+      const r = await api('/api/favorite', { game_id: gid });
+      if (r.favorite) FAV_IDS.add(gid); else FAV_IDS.delete(gid);
+      b.textContent = r.favorite ? '★' : '☆';
+      b.className = 'act fav' + (r.favorite ? ' on' : '');
+      b.title = r.favorite ? '取消收藏' : '收藏这一场（可在「已收藏对局」里写备注）';
+      toast(r.favorite ? '已收藏' : '已取消收藏');
+      updateFavBadge();
+      if (view === 'fav') loadFavorites();
+    } catch (e) { toast(e.message); }
+  };
+  return b;
+}
+function updateFavBadge() {
+  const b = $('#fav-badge');
+  if (b) b.textContent = FAV_IDS.size;
+}
+
+function playerRow(p, cls) {
+  const d = el('div', 'prow ' + (p ? (p.result === 'win' ? 'win' : 'loss') : '') + (cls === 'me' ? ' me' : ''));
+  d.style.gap = '6px';
+  d.appendChild(civIcon(p && p.civ, p && p.civ_icon));
+  d.appendChild(el('span', 'nm', (p && p.name) || ''));
+  return d;
+}
+function simpleRow(name, cls) {
+  const d = el('div', 'prow ' + cls);
+  d.appendChild(civIcon(null, null));
+  d.appendChild(el('span', 'nm', name));
+  return d;
+}
+function civIcon(civ, iconUrl) {
+  // 优先用后端给的 civ_icon 路径；没有就自己按 civ id 拼（文明旗帜都在本地 /civflags/）
+  // 尺寸交给 CSS 的 .civdot 管，别在这里写死内联样式，否则改 CSS 不生效
+  const src = iconUrl || (civ ? `/civflags/${civ}.png` : '');
+  if (src) {
+    const i = el('img', 'civdot');
+    i.src = src;
+    // 悬停给中文文明名：旗帜只有徽记，光看旗认不出是哪个文明
+    i.title = civ ? `${civZh(civ)}（${civ}）` : '';
+    i.onerror = () => {
+      // 加载失败退回兜底块，不要只留一个空心的灰点
+      const s = civFallback(civ);
+      s.style.background = civColor(civ);
+      i.replaceWith(s);
+    };
+    return i;
+  }
+  return civFallback(civ);
+}
+// 没有旗帜时显示什么：有名字就给首字母，连名字都没有就画「?」
+// —— 灰块和问号必须能区分开，否则分不清「文明未知」和「解析坏了」
+function civFallback(civ) {
+  const s = el('span', 'civdot' + (civ ? ' civdot-letter' : ' civdot-unknown'), civ ? String(civ)[0].toUpperCase() : '?');
+  s.title = civ ? `文明：${civZh(civ)}（${civ}，没有对应旗帜）` : '这个玩家槽里没有文明数据';
+  return s;
+}
+// 文明 id → 中文名（和后端 civs.CIV_ZH 对齐；不认识就显示原 id）
+const CIV_ZH = {
+  abbasid_dynasty:'阿拔斯王朝', ayyubids:'阿尤布王朝', byzantines:'拜占庭', chinese:'中国',
+  delhi_sultanate:'德里苏丹国', english:'英格兰', french:'法兰西', golden_horde:'金帐汗国',
+  holy_roman_empire:'神圣罗马帝国', house_of_lancaster:'兰开斯特王朝', japanese:'日本',
+  jeanne_darc:'圣女贞德', jin_dynasty:'金朝', knights_templar:'圣殿骑士团',
+  macedonian_dynasty:'马其顿王朝', malians:'马里', mongols:'蒙古',
+  order_of_the_dragon:'龙骑士团', ottomans:'奥斯曼', random:'随机文明', rus:'罗斯',
+  sengoku_daimyo:'战国大名', tughlaq_dynasty:'图格鲁克王朝', zhu_xis_legacy:'朱希传承',
+  sultans_army:'苏丹军', hindu_rajas:'印度诸王', vijayanagara:'毗奢耶那伽罗',
+  danish:'丹麦', tarkhan:'塔尔汗', khmer:'高棉'
+};
+const civZh = c => CIV_ZH[c] || c || '';
+function relTime(iso) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  const diff = (Date.now() - t) / 1000;
+  if (diff < 3600) return `${Math.max(1, Math.round(diff/60))} 分钟前`;
+  if (diff < 86400) return `${Math.round(diff/3600)} 小时前`;
+  return `${Math.round(diff/86400)} 天前`;
+}
+
+async function play(gid) {
+  try {
+    const r = await api('/api/play', { game_id: gid });
+    if (r.stage === 'blocked') toast(`⛔ ${r.message}`, 10000);
+    else if (r.stage === 'downloading') { toast('⏳ 本地没有，正在下载（下完自动启动）', 6000); toastWatch(gid); }
+    else if (r.ok) { toast(`已启动回放\n${r.command}`, 6000); toastWatch(gid); }
+    else toast(r.message || '启动失败', 5000);
+    refresh();
+  } catch (e) { toast(e.message); }
+}
+function toastWatch(gid) {
+  // 本地已经有文件时（stage 不是 downloading），没有 job 也没有 version_blocked，
+  // 老代码那两个退出分支永远命中不了，白白轮询满 60 次。这里给「本来就有文件」单独收口，
+  // 并且每局只保留一个观察者，连点几次不会叠出多条 1.5s 轮询。
+  WATCHING = WATCHING || new Map();
+  if (WATCHING.has(gid)) clearInterval(WATCHING.get(gid));
+  const state0 = STATE || {};
+  const rowNow = (state0.games || []).find(x => x.game_id === gid);
+  const jobNow = ((state0.queue || {}).jobs || []).find(j => j.game_id === gid);
+  if (rowNow && rowNow.owned && !jobNow) return;   // 已经在本地、没有在下的任务：没什么可等
+
+  let n = 0;
+  const t = setInterval(async () => {
+    n++;
+    try {
+      const s = await api('/api/state');
+      const row = (s.games||[]).find(x => x.game_id === gid);
+      const job = (s.queue.jobs||[]).find(j => j.game_id === gid);
+      if (row && row.version_blocked) { toast('⚠ 游戏拒绝：版本 ' + row.version_blocked.replay_version + ' ≠ ' + row.version_blocked.client_build, 10000); stop(); return; }
+      if (job && job.status === 'done' && row && row.owned) { toast('✅ 下载完成，正在启动回放…', 5000); stop(); return; }
+      if (job && ['error','missing'].includes(job.status)) { toast('❌ 下载失败：' + job.message, 7000); stop(); return; }
+      // 没有任务了而且也没在下载 → 结束了，别继续轮询
+      if (!job && row && row.owned) { stop(); return; }
+    } catch (e) {}
+    if (n > 40) stop();
+  }, 1500);
+  const stop = () => { clearInterval(t); WATCHING.delete(gid); };
+  WATCHING.set(gid, t);
+}
+
+async function download(ids, force) {
+  if (!ids.length) { toast('先勾选对局'); return; }
+  try {
+    // force：本地已有（按钮写着「重新下载」）时必须真的重排。否则后端按「已入库」跳过，
+    // 用户删掉文件再点一次只会看到「没有需要下载的」。
+    const r = force
+      ? await api('/api/download', { game_ids: ids, force: true })
+      : await api('/api/download', { game_ids: ids });
+    const n = (r.added||[]).length;
+    const owned = (r.skipped_owned||[]).length;
+    const queued = (r.skipped_queued||[]).length;
+    const parts = [];
+    if (n) parts.push(`${n} 个已入队`);
+    if (owned) parts.push(`${owned} 个本地已有（跳过）`);
+    if (queued) parts.push(`${queued} 个已在队列`);
+    toast(parts.length ? parts.join(' · ') : '没有需要下载的');
+    refresh();
+  } catch (e) { toast(e.message); }
+}
+
+// 「最近 N 天缺的 M 场」—— 后端先向 Relic 批量验证有没有副本，只把拿得到地址的入队
+async function downloadRecent() {
+  const days = parseInt($('#dl-days').value, 10);
+  const limit = parseInt($('#dl-limit').value, 10);
+  if (!Number.isFinite(days) || days < 0) { toast('天数要填 0 或正整数'); return; }
+  if (!Number.isFinite(limit) || limit < 0) { toast('场次要填 0 或正整数'); return; }
+  const btn = $('#btn-recent');
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '探测中…';
+  $('#dl-preview').textContent = '正在向服务器确认副本…';
+  try {
+    const r = await api('/api/download/recent', { days, limit, probe: true });
+    if (!r.picked) {
+      toast(days ? `最近 ${days} 天里没有缺失的对局` : '没有缺失的对局');
+      return;
+    }
+    const n = (r.added || []).length;
+    const bad = (r.unavailable || []).length;
+    const queued = (r.skipped_queued || []).length;
+    let msg = `挑出 ${r.picked} 场 · 有副本 ${r.available} 场 · 已入队 ${n} 个`;
+    if (bad) msg += ` · ${bad} 场服务器没副本（已跳过）`;
+    if (queued) msg += ` · ${queued} 场已在队列`;
+    toast(msg, bad ? 9000 : 5000);
+    if (bad) {
+      const ids = (r.unavailable || []).slice(0, 8).join('、');
+      toast(`无副本：${ids}${bad > 8 ? ' …' : ''}`, 9000);
+    }
+    refresh();
+  } catch (e) { toast(e.message); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+
+// 预估「最近 N 天缺的」会挑中几场 —— 纯前端算，跟后端 recent_missing 的口径一致：
+// 按 started_at 倒序、先剔掉已下载的、再按 limit 截断
+function recentPreview() {
+  const el2 = $('#dl-preview');
+  if (!el2 || !STATE) return;
+  const days = parseInt($('#dl-days').value, 10);
+  const limit = parseInt($('#dl-limit').value, 10);
+  if (!Number.isFinite(days) || days < 0 || !Number.isFinite(limit) || limit < 0) {
+    el2.textContent = '填 0 或正整数';
+    el2.className = 'dlpreview zero';
+    return;
+  }
+  const cutoff = days > 0 ? Date.now() - days * 86400 * 1000 : null;
+  let n = 0;
+  for (const r of STATE.games) {
+    if (r.owned) continue;
+    if (cutoff != null) {
+      const t = Date.parse(r.started_at || '');
+      if (!Number.isFinite(t) || t < cutoff) continue;
+    }
+    n++;
+    if (limit && n >= limit) break;
+  }
+  // 有副本状态的已知数（探测过且判定 missing 的），能从 n 里再扣掉
+  const knownBad = STATE.games.filter(r => !r.owned && r.job && r.job.status === 'missing').length;
+  if (!n) {
+    el2.textContent = days ? `最近 ${days} 天没有缺的` : '没有缺的';
+    el2.className = 'dlpreview zero';
+  } else {
+    el2.textContent = `会挑中 ${n} 场` + (knownBad ? `（其中 ${knownBad} 场已知无副本）` : '');
+    el2.className = 'dlpreview';
+  }
+}
+
+async function refresh() {
+  try {
+    STATE = await api('/api/state');
+    lastFetch = Date.now();
+    // 收藏状态以服务端为准，列表刷新时同步一次
+    FAV_IDS = new Set(STATE.favorite_ids || []);
+    updateFavBadge();
+    render();
+  }
+  catch (e) { toast('拉取状态失败：' + e.message); }
+}
+
+// ---------- 分页（AoE4World 每页 50 场） ----------
+let LOADING_MORE = false;
+
+function renderPager() {
+  if (!STATE || !$('#pginfo')) return;
+  const p = STATE.paging || {};
+  const loaded = p.loaded || STATE.games.length;
+  const total = p.total_count || 0;
+  const left = total ? Math.max(0, total - loaded) : null;
+  $('#pginfo').innerHTML = total
+    ? `已加载 <b>${loaded}</b> / <b>${total}</b> 场 · 第 <b>${p.pages_loaded || Math.ceil(loaded / 50)}</b> 页` +
+      (left ? ` · 还有 <b>${left}</b> 场` : ' · 全部加载完了')
+    : `已加载 <b>${loaded}</b> 场`;
+  const more = !!p.has_more;
+  $('#btn-more').disabled = !more || LOADING_MORE;
+  $('#btn-more5').disabled = !more || LOADING_MORE;
+}
+
+async function loadMore(pages) {
+  if (LOADING_MORE) return;
+  LOADING_MORE = true;
+  renderPager();
+  try {
+    const r = await api('/api/more', { pages: pages || 1 });
+    if (!r.added) toast('已经到底了，没有更多对局');
+    else toast(`追加 ${r.added} 场（共 ${r.total} 场）`);
+    await refresh();
+  } catch (e) {
+    toast('加载更多失败：' + e.message);
+  } finally {
+    LOADING_MORE = false;
+    renderPager();
+  }
+}
+
+$('#btn-refresh').onclick = async () => { try { await api('/api/refresh'); await refresh(); toast('已同步'); } catch (e) { toast(e.message); } };
+$('#q').oninput = render;
+$('#f-mode').onchange = render; $('#f-civ').onchange = render; $('#f-map').onchange = render;
+document.querySelectorAll('input[name=st]').forEach(i => i.onchange = render);
+$('#f-win').onchange = render;
+$('#chk-all').onchange = e => {
+  document.querySelectorAll('#rows input[type=checkbox]').forEach(b => { b.checked = e.target.checked; });
+  // 只勾「当前筛选后看得见的那几行」。原来是把 STATE.games 全部塞进 selected，
+  // 于是带着筛选点全选 → 点下载 → 连看不见的对局一起下。
+  if (e.target.checked) VISIBLE_IDS.forEach(id => selected.add(id)); else selected.clear();
+};
+$('#btn-dl').onclick = () => download([...selected]);
+// 「下载全部缺失」已下线：它只按「本地有没有」筛，不验服务器有没有副本，
+// 会把一堆下不来的场次白排进队列。要批量下请用右边的「最近 N 天缺的」。
+$('#btn-recent').onclick = downloadRecent;
+$('#dl-days').oninput = recentPreview;
+$('#dl-limit').oninput = recentPreview;
+$('#btn-more').onclick = () => loadMore(1);
+$('#btn-more5').onclick = () => loadMore(5);
+$('#btn-retry').onclick = async () => {
+  const ids = STATE.queue.jobs.filter(j => ['error','missing'].includes(j.status)).map(j => j.game_id);
+  if (!ids.length) { toast('没有需要重试的'); return; }
+  try { await api('/api/retry', { game_ids: ids }); toast('已重排 ' + ids.length + ' 个'); refresh(); } catch (e) { toast(e.message); }
+};
+$('#btn-cancel').onclick = async () => { try { await api('/api/cancel', {}); toast('队列已清空'); refresh(); } catch (e) { toast(e.message); } };
+$('#btn-actor').onclick = async () => {
+  try { const r = await api('/api/actor/start', {}); toast(r.ok ? (r.already ? '浏览器面板已经在跑' : '已打开，请登录一次') : (r.message||'启动失败'), 6000); refresh(); }
+  catch (e) { toast(e.message); }
+};
+$('#btn-settings').onclick = () => {
+  const c = STATE.config;
+  $('#set-profile').value = c.profile_id;
+  $('#set-steamid').value = c.steam_id || '';
+  $('#set-steam').value = c.steam_exe;
+  $('#set-ui-browser').value = c.ui_browser || '';
+  $('#set-actor-browser').value = c.actor_browser || '';
+  const warn = $('#cdp-warn');
+  if (warn) warn.style.display = c.actor_browser_supports_cdp === false ? '' : 'none';
+  $('#set-download').value = c.download_dir;
+  $('#set-library').value = c.library_dir;
+  $('#set-playback').value = c.playback_dir;
+  $('#set-network').value = c.network_dir || '';
+  // 让用户直观看到 network 里有多少文件，改错目录能立刻发现
+  const nn = $('#net-note');
+  if (nn) {
+    const n = c.network_files;
+    nn.textContent = c.network_exists
+      ? `（自定义对局主要来源，当前 ${n} 个 M_ 文件）`
+      : '（目录不存在！自定义对局会扫不到）';
+    nn.style.color = c.network_exists ? '#5d6f85' : '#e0a9a9';
+  }
+  $('#set-poll').value = c.poll_seconds;
+  $('#dlg-settings').showModal();
+};
+$('#btn-save').onclick = async () => {
+  const poll = $('#set-poll').value.trim();
+  try {
+    const r = await api('/api/settings', {
+      profile_id: parseInt($('#set-profile').value,10)||null,
+      steam_id: $('#set-steamid').value.trim()||null,
+      steam_exe: $('#set-steam').value||null,
+      ui_browser: $('#set-ui-browser').value||null,
+      actor_browser: $('#set-actor-browser').value||null,
+      download_dir: $('#set-download').value||null,
+      library_dir: $('#set-library').value||null,
+      playback_dir: $('#set-playback').value||null,
+      network_dir: $('#set-network').value||null,
+      poll_seconds: poll === '' ? null : (parseInt(poll,10) || 0)
+    });
+    $('#dlg-settings').close();
+    const notes = (r && r.notes) || [];
+    toast(notes.length ? '已保存，但有几项被忽略：\n' + notes.join('\n') : '已保存', notes.length ? 9000 : 3000);
+    refresh();
+  } catch (e) { toast(e.message); }
+};
+document.querySelectorAll('.head-row .c[data-sort]').forEach(th => th.onclick = () => {
+  const k = th.dataset.sort;
+  sortDir = (sortKey === k) ? -sortDir : -1; sortKey = k; render();
+});
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'd' || e.key === 'D') download([...selected]);
+  if (e.ctrlKey && e.key === 'Enter') { const id = [...selected][0]; if (id) play(id); }
+});
+
+// ---------- 录制面板 ----------
+function recStepRow(a) {
+  const d = el('div');
+  d.style.cssText = 'display:grid;grid-template-columns:58px 1fr;gap:8px;font-size:12px;padding:4px 2px;border-bottom:1px solid var(--line-soft)';
+  d.appendChild(el('div', 'pathline', '+' + ((a.delay||a.t||0)/1000).toFixed(1) + 's'));
+  const body = el('div');
+  const k = el('span', null, a.kind || '?');
+  k.style.cssText = 'display:inline-block;min-width:44px;padding:0 6px;border-radius:4px;font-size:10px;text-align:center;background:#16222f;color:#9fb0c6;margin-right:6px';
+  body.appendChild(k);
+  const txt = a.kind === 'click' ? (a.target||'') + (a.x != null ? ` @${Math.round(a.x)},${Math.round(a.y)}` : '')
+    : a.kind === 'key' ? [a.ctrl&&'Ctrl+', a.shift&&'Shift+', a.key].filter(Boolean).join('')
+    : a.kind === 'input' ? (a.target||'') + ' ← ' + (a.value||'')
+    : a.kind === 'game' ? (a.action === 'launch_replay' ? '启动回放 ' + (a.arg||'') : '回放文件 ' + (a.file||''))
+    : a.kind === 'fetch' ? (a.method||'') + ' ' + String(a.url||'').slice(-46)
+    : '';
+  body.appendChild(document.createTextNode(txt));
+  d.appendChild(body);
+  return d;
+}
+function renderRec(s) {
+  REC = s; if (!s) return;
+  const on = s.recorder.recording;
+  const btn = $('#rec-toggle');
+  btn.textContent = on ? '■ 停止录制' : '● 开始录制';
+  btn.className = 'tb-btn rec' + (on ? ' on' : '');
+  $('#btn-rec').className = 'tb-btn rec' + (on ? ' on' : '');
+  const kinds = s.recorder.kinds || {};
+  $('#rec-stats').textContent = `${s.recorder.count} 条 · ${s.recorder.duration}s` + (Object.keys(kinds).length ? ' · ' + Object.entries(kinds).map(([k,v])=>k+' '+v).join(' / ') : '');
+  $('#rec-hint').textContent = s.has_page ? '' : '（浏览器面板没开）';
+  const steps = $('#rec-steps'); steps.innerHTML = '';
+  if (!REC_ACTIONS.length) steps.innerHTML = '<span class="pathline">还没有动作。点「开始录制」，然后在浏览器窗口里操作。</span>';
+  REC_ACTIONS.slice().reverse().forEach(a => steps.appendChild(recStepRow(a)));
+  $('#mm-bar').style.width = (s.mimic.percent || 0) + '%';
+  const box = $('#rec-scripts'); box.innerHTML = '';
+  if (!s.scripts.length) box.innerHTML = '<span class="pathline">空的</span>';
+  s.scripts.forEach(sc => {
+    const row = el('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line-soft);border-radius:6px;margin-bottom:6px;font-size:12px';
+    row.innerHTML = `<div><b style="font-weight:500">${escHtml(sc.name)}</b><div class="pathline">${escHtml(sc.created)} · ${sc.actions} 步</div></div>`;
+    const right = el('div'); right.style.cssText = 'display:flex;gap:5px';
+    const b1 = el('button', 'act play', '▶'); b1.onclick = () => mimicPlay(sc.name);
+    const b2 = el('button', 'act', '◎'); b2.title = '视觉级'; b2.onclick = () => mimicPlay(sc.name, 'visual');
+    right.appendChild(b1); right.appendChild(b2); row.appendChild(right); box.appendChild(row);
+  });
+}
+async function recTick() {
+  if (!$('#dlg-rec').open) return;
+  try {
+    const st = await api('/api/recorder/state');
+    const ac = await api('/api/recorder/actions', { n: 60 }).catch(() => ({ actions: [] }));
+    REC_ACTIONS = ac.actions || [];
+    renderRec(st);
+  } catch (e) {}
+}
+$('#btn-rec').onclick = () => { $('#dlg-rec').showModal(); recTick(); };
+$('#rec-toggle').onclick = async () => {
+  try { if (REC && REC.recorder.recording) await api('/api/recorder/stop', {}); else await api('/api/recorder/start', {}); recTick(); }
+  catch (e) { toast(e.message); }
+};
+$('#rec-save').onclick = async () => {
+  const name = prompt('脚本名', 'session-' + new Date().toISOString().slice(5,16).replace(/[:T]/g,''));
+  if (!name) return;
+  try { const r = await api('/api/recorder/save', { name }); toast('已保存 ' + r.actions + ' 步'); recTick(); } catch (e) { toast(e.message); }
+};
+$('#rec-clear').onclick = async () => { await api('/api/recorder/stop', {}).catch(()=>{}); REC_ACTIONS = []; renderRec(REC); };
+$('#rec-ping').onclick = async () => { try { const r = await api('/api/recorder/poll', {}); toast('补抓 ' + (r.added||0) + ' 条'); recTick(); } catch (e) { toast(e.message); } };
+function mimicPlay(name, mode) {
+  const chosen = mode || (document.querySelector('input[name=mmode]:checked')||{}).value || 'script';
+  const speed = parseFloat($('#mmode-speed').value) || 1;
+  api('/api/mimic/play', { name: name||null, mode: chosen, speed })
+    .then(r => toast(r.ok ? `开始回放：${chosen} · ${r.total} 步` : (r.message||'回放失败'), 4000))
+    .catch(e => toast(e.message));
+}
+$('#mm-play').onclick = () => mimicPlay(null);
+$('#mm-stop').onclick = () => api('/api/mimic/stop', {}).then(() => recTick()).catch(e => toast(e.message));
+setInterval(recTick, 1200);
+
+// ---------- 自定义对局 ----------
+let CUSTOM = null, view = 'ranked';
+
+function switchView(v) {
+  view = v;
+  $('#panel-ranked').style.display = v === 'ranked' ? '' : 'none';
+  $('#panel-custom').style.display = v === 'custom' ? '' : 'none';
+  const fp = $('#panel-fav'); if (fp) fp.style.display = v === 'fav' ? '' : 'none';
+  $('#tab-ranked').classList.toggle('on', v === 'ranked');
+  $('#tab-custom').classList.toggle('on', v === 'custom');
+  const tf = $('#tab-fav'); if (tf) tf.classList.toggle('on', v === 'fav');
+  if (v === 'custom') loadCustom();
+  if (v === 'fav') loadFavorites();
+}
+
+// ---------- 已收藏对局 ----------
+let FAVS = null;
+
+async function loadFavorites() {
+  try {
+    FAVS = await api('/api/favorites');
+    FAV_IDS = new Set((FAVS.entries || []).map(e => e.game_id));
+    updateFavBadge();
+    const c = $('#fav-count');
+    if (c) c.textContent = `${FAVS.count} 条收藏`;
+    renderFavorites();
+  } catch (e) { toast('拉取收藏失败：' + e.message); }
+}
+
+function renderFavorites() {
+  const box = $('#fav-rows');
+  if (!box || !FAVS) return;
+  box.innerHTML = '';
+  const q = (($('#fav-q') || {}).value || '').trim().toLowerCase();
+  let list = FAVS.entries || [];
+  if (q) {
+    list = list.filter(e => {
+      const hay = [
+        e.map, e.kind, e.note,
+        (e.me && e.me.name) || '',
+        ...(e.matesRaw || []).map(m => m.name || ''),
+        ...(e.opponents || []).map(o => o.name || ''),
+        ...(e.players || []).map(p => p.name || ''),
+      ].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  const empty = $('#fav-empty');
+  if (empty) empty.style.display = list.length ? 'none' : 'block';
+  if (!list.length) return;
+
+  list.forEach(r => {
+    const row = el('div', 'grow');
+    row.style.gridTemplateColumns = '26px 208px 172px 40px 200px 62px 62px 200px 88px 128px';
+
+    // 收藏标记
+    const c0 = el('div');
+    const star = el('span', null, '★');
+    star.style.cssText = 'font-size:14px;color:#d8b878';
+    star.title = r.stale ? '这场已经不在最近的排位列表里了（显示的是收藏时的快照）' : '已收藏';
+    c0.appendChild(star);
+    row.appendChild(c0);
+
+    // 地图 / 模式 / 时长
+    const c1 = el('div', 'mapcell');
+    const img = el('img', 'mapthumb');
+    if (r.map_thumb) {
+      img.src = r.map_thumb;
+      img.onerror = () => { img.style.visibility = 'hidden'; };
+    } else img.style.visibility = 'hidden';
+    const mt = el('div', 'maptext');
+    mt.appendChild(el('b', null, r.map || ''));
+    mt.appendChild(el('span', null, `${modeLabel(r.kind)}  ${r.duration_text || ''}`.trim()));
+    c1.appendChild(img); c1.appendChild(mt); row.appendChild(c1);
+
+    // 日期
+    const c2 = el('div', 'datecell');
+    c2.appendChild(el('div', null, r.started_local || ''));
+    if (r.site_url) {
+      const a = el('a', null, 'View Summary');
+      a.href = r.site_url; a.target = '_blank';
+      c2.appendChild(a);
+    }
+    row.appendChild(c2);
+
+    // Δ
+    const c3 = el('div', 'ratediff');
+    if (r.me && r.me.rating_diff != null) {
+      const d = el('div', 'dv' + (r.me.rating_diff > 0 ? ' up' : r.me.rating_diff < 0 ? ' down' : ''));
+      d.textContent = (r.me.rating_diff > 0 ? '↑ ' : r.me.rating_diff < 0 ? '↓ ' : '') + Math.abs(r.me.rating_diff);
+      c3.appendChild(d);
+    }
+    if (r.average_rating) c3.appendChild(el('div', 'av', r.average_rating));
+    row.appendChild(c3);
+
+    // 玩家
+    const c4 = el('div', 'players');
+    if (r.me) {
+      c4.appendChild(playerRow(r.me, 'me'));
+      (r.matesRaw || []).forEach(m => c4.appendChild(playerRow(m, '')));
+    } else if ((r.players || []).length) {
+      r.players.forEach(p => c4.appendChild(playerRow(p, '')));
+    } else {
+      const d = el('div', 'prow');
+      const nm = el('span', 'nm', '—'); nm.style.color = '#4d5f74';
+      d.appendChild(nm); c4.appendChild(d);
+    }
+    row.appendChild(c4);
+
+    // 评分列 ×2
+    const c5 = el('div', 'ratingcol');
+    c5.appendChild(el('div', 'rv mine', r.me ? (r.me.rating || '') : ''));
+    (r.matesRaw || []).forEach(m => c5.appendChild(el('div', 'rv', m.rating || '')));
+    row.appendChild(c5);
+    const c6 = el('div', 'ratingcol');
+    const opps = r.opponents || [];
+    for (let i = 0; i < Math.max(opps.length, 1); i++) {
+      c6.appendChild(el('div', 'rv', opps[i] ? (opps[i].rating || '') : ''));
+    }
+    row.appendChild(c6);
+
+    // 对手
+    const c7 = el('div', 'oppcol');
+    opps.forEach(o => {
+      const d = el('div', 'orow ' + (o.result === 'win' ? 'win' : 'loss'));
+      d.appendChild(el('span', 'onm', o.name || ''));
+      d.appendChild(civIcon(o.civ, o.civ_icon));
+      c7.appendChild(d);
+    });
+    row.appendChild(c7);
+
+    // 状态
+    const c8 = el('div', 'statuscell'); c8.appendChild(statusCell(r)); row.appendChild(c8);
+
+    // 操作
+    const c9 = el('div', 'actcell');
+    const bp = el('button', 'act play', '▶');
+    bp.title = r.owned ? '启动回放' : '自动下载并启动';
+    bp.onclick = () => play(r.game_id);
+    const bd = el('button', 'act', '⭳');
+    bd.title = r.owned ? '重新下载' : '只下载，不启动';
+    bd.onclick = () => download([r.game_id], r.owned);
+    const bx = el('button', 'act fav on', '★');
+    bx.title = '取消收藏';
+    bx.onclick = async () => {
+      try {
+        await api('/api/favorite', { game_id: r.game_id, favorite: false });
+        FAV_IDS.delete(r.game_id);
+        updateFavBadge();
+        toast('已取消收藏');
+        loadFavorites();
+      } catch (e) { toast(e.message); }
+    };
+    c9.appendChild(bp); c9.appendChild(bd); c9.appendChild(bx);
+    row.appendChild(c9);
+
+    // 备注行：占满整宽，自己写说明（自动保存）
+    const noteRow = el('div');
+    noteRow.style.cssText = 'grid-column:1 / -1;padding:2px 0 4px;margin-top:-4px';
+    const wrap = el('div', 'favnote');
+    const ta = el('textarea');
+    ta.value = r.note || '';
+    ta.placeholder = '写点说明：这局为什么值得留、用了什么打法、要学什么… （停手 0.8 秒自动保存）';
+    const tick = el('span', 'saveticks', r.note ? '已保存' : '');
+    let timer = null;
+    ta.oninput = () => {
+      tick.textContent = '未保存';
+      tick.className = 'saveticks';
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try {
+          await api('/api/favorite/note', { game_id: r.game_id, note: ta.value });
+          tick.textContent = '已保存';
+          tick.className = 'saveticks ok';
+          const hit = (FAVS.entries || []).find(x => x.game_id === r.game_id);
+          if (hit) hit.note = ta.value;
+        } catch (e) {
+          tick.textContent = '保存失败';
+          tick.className = 'saveticks';
+        }
+      }, 800);
+    };
+    wrap.appendChild(ta); wrap.appendChild(tick);
+    noteRow.appendChild(wrap);
+    row.appendChild(noteRow);
+
+    box.appendChild(row);
+  });
+}
+
+async function loadCustom() {
+  try {
+    CUSTOM = await api('/api/custom');
+    $('#custom-badge').textContent = CUSTOM.count;
+    renderCustom();
+  } catch (e) { toast('拉取自定义对局失败：' + e.message); }
+}
+
+// 玩法包下拉：从当前条目里汇总 pack_id → 显示名。
+// 名字只在 pack_names.json 里有（回放文件里不带名字），没命名过就显示「玩法#id」
+function renderPackOptions(entries) {
+  const sel = $('#f-pack');
+  if (!sel) return;
+  const cur = sel.value;
+  const packs = new Map();
+  let noneCount = 0;
+  (entries || []).forEach(e => {
+    if (!e.pack_id) { noneCount++; return; }
+    const key = String(e.pack_id);
+    const rec = packs.get(key) || { id: key, name: e.pack_name || '', n: 0 };
+    rec.n++;
+    if (e.pack_name) rec.name = e.pack_name;
+    packs.set(key, rec);
+  });
+  // 有名字的排前面，按场次降序
+  const arr = [...packs.values()].sort((a, b) => {
+    if (!!a.name !== !!b.name) return a.name ? -1 : 1;
+    return b.n - a.n;
+  });
+  sel.innerHTML = '<option value="all">全部玩法</option>' +
+    arr.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.name || ('玩法#' + p.id))}（${p.n}）</option>`).join('') +
+    (noneCount ? `<option value="none">无玩法包（${noneCount}）</option>` : '');
+  // 原来选的还在就保留，否则回落到「全部」
+  sel.value = [...sel.options].some(o => o.value === cur) ? cur : 'all';
+}
+
+function renderCustom() {
+  if (!CUSTOM) return;
+  const box = $('#custom-rows'); box.innerHTML = '';
+  const all = CUSTOM.entries || [];
+  renderPackOptions(all);
+  const ownerFilter = ($('#f-owner') || {}).value || 'all';
+  const packFilter = ($('#f-pack') || {}).value || 'all';
+  let list = all;
+  if (ownerFilter === 'mine') list = list.filter(e => e.is_mine === true);
+  else if (ownerFilter === 'other') list = list.filter(e => e.is_mine === false);
+  else if (ownerFilter === 'unknown') list = list.filter(e => e.is_mine === null || e.is_mine === undefined);
+  // 玩法包：'none' = 没有 pack_id 的（普通自定义/本地 .rec）
+  if (packFilter === 'none') list = list.filter(e => !e.pack_id);
+  else if (packFilter !== 'all') list = list.filter(e => String(e.pack_id) === packFilter);
+  $('#custom-count').textContent = `${list.length} / ${all.length} 条`;
+  $('#custom-empty').style.display = list.length ? 'none' : 'block';
+  updateCustomSel();
+
+  list.forEach((e, i) => {
+    const api = e.api;                      // API 补全出来的对局数据（可能为空）
+    const row = el('div', 'grow');
+    row.style.gridTemplateColumns = '26px 236px 116px 34px 200px 62px 62px 180px 70px 92px';
+
+    // 勾选 + 号主标记（和 Games 页一样的勾选逻辑）
+    const k = e.key || (e.game_id ? 'g:' + e.game_id : 'p:' + (e.path || e.file || ''));
+    const c0 = el('div');
+    c0.style.cssText = 'display:flex;align-items:center;gap:4px';
+    const cb = el('input'); cb.type = 'checkbox'; cb.checked = customSel.has(k);
+    cb.style.accentColor = 'var(--gold)';
+    cb.onchange = () => { cb.checked ? customSel.add(k) : customSel.delete(k); updateCustomSel(); };
+    const badge = el('span', null,
+      e.is_mine === true ? '★' : e.is_mine === false ? '◆' : e.source === 'rogue' ? '◈' : '⊕');
+    badge.style.cssText = 'font-size:13px;' +
+      (e.is_mine === true ? 'color:#d8b878' : e.is_mine === false ? 'color:#8fb8dc' : 'color:#4d5f74');
+    badge.title = e.is_mine === true ? '我的对局' : e.is_mine === false ? '别人的对局' : '无法判断号主';
+    // 没有 game_id 的条目（本地 .rec）不能下载，勾选框置灰但仍可「移除」
+    if (!e.game_id) { cb.title = '本地 .rec 没有对局 ID，只能移除不能下载'; }
+    c0.appendChild(cb); c0.appendChild(badge); row.appendChild(c0);
+
+    // 地图 + 文件
+    const c1 = el('div', 'mapcell');
+    c1.style.minWidth = '0';
+    const mt = el('div', 'maptext');
+    mt.style.minWidth = '0';
+    mt.appendChild(el('b', null, (api && api.map) || e.map || '—'));
+    const sub = el('span', null, e.file || ('#' + e.game_id));
+    sub.style.cssText = 'display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;color:#4d5f74';
+    mt.appendChild(sub);
+    c1.appendChild(mt); c1.title = e.file || String(e.game_id);
+    row.appendChild(c1);
+
+    // 时间 + 模式 + 玩法包
+    const c2 = el('div', 'datecell');
+    c2.appendChild(el('div', null, e.started_local || ''));
+    const kindTxt = e.mode_label || ((api && api.kind) ? modeLabel(api.kind) : '');
+    if (kindTxt) c2.appendChild(el('div', 'pathline', kindTxt));
+    if (e.pack_id) {
+      const pk = el('div', 'pathline', `玩法#${e.pack_id}`);
+      pk.style.cssText = 'font-size:10px;color:#6a7f96;cursor:help';
+      pk.title = `${e.pack_kind || ''}\n${e.pack_hash || ''}\n点这里可以给这个玩法起名`;
+      pk.onclick = () => {
+        const name = prompt(`给玩法 ${e.pack_id} 起名（留空取消）`, e.pack_name || '');
+        if (name === null) return;
+        if (!name.trim()) return;
+        api('/api/custom/pack_name', { pack_id: e.pack_id, name: name.trim() })
+          .then(() => { toast('已命名：' + name.trim()); loadCustom(); })
+          .catch(x => toast(x.message));
+      };
+      if (e.pack_name) {
+        pk.textContent = e.pack_name;
+        pk.style.color = '#d8b878';
+      }
+      c2.appendChild(pk);
+    }
+    row.appendChild(c2);
+
+    // Δ（自定义不显示分数，留空占位保持和 Games 页签同构）
+    row.appendChild(el('div', 'ratediff'));
+
+    // 玩家：和 Games 页签同一套渲染 —— 旗帜 + 名字，不再单独显示文明文字
+    const c4 = el('div', 'players');
+    const pls = (e.players || []).filter(p => p.name);
+    if (api) {
+      if (api.me) c4.appendChild(playerRow(api.me, 'me'));
+      (api.mates || []).forEach(m => c4.appendChild(playerRow(m, '')));
+    } else if (pls.length) {
+      pls.forEach(p => {
+        const d = el('div', 'prow' + (p.is_ai ? ' loss' : ''));
+        d.appendChild(civIcon(p.civ, p.civ_icon));
+        const nm = el('span', 'nm', p.name);
+        if (p.steam_id === (STATE && STATE.config ? STATE.config.steam_id : '')) nm.style.color = '#d8b878';
+        d.appendChild(nm);
+        c4.appendChild(d);
+      });
+    } else if (e.civ_zh) {
+      // .rec 文件名里带的文明（"…-黑衣大食王朝.rec"）—— 只有中文名，没有 id，
+      // 不该画「?」占位框，那是给「有槽位但读不出文明」用的
+      const d = el('div', 'prow');
+      const nm = el('span', 'nm', e.civ_zh);
+      nm.style.color = '#cdb98a';
+      nm.style.paddingLeft = '29px';   // 补上旗子占的宽度，和上面几行左对齐
+      d.appendChild(nm);
+      c4.appendChild(d);
+    } else {
+      // 本地 .rec / temp.rec：文件里没有玩家段，宁可明说也不画一堆问号
+      const d = el('div', 'prow');
+      const nm = el('span', 'nm', '无玩家数据');
+      nm.style.color = '#4d5f74';
+      nm.style.paddingLeft = '29px';
+      nm.title = '本地录制的 .rec 里没有玩家段（见开发记录 9.2）';
+      d.appendChild(nm);
+      c4.appendChild(d);
+    }
+    row.appendChild(c4);
+
+    // 我方评分列：自定义不显示分数，留空列保持和 Games 对齐
+    row.appendChild(el('div', 'ratingcol'));
+
+    // 对手评分列：同上，留空
+    row.appendChild(el('div', 'ratingcol'));
+
+    // 对手：名字 + 文明旗帜
+    const opps = (api && api.opponents) || [];
+    const c7 = el('div', 'oppcol');
+    opps.forEach(o => {
+      const d = el('div', 'orow ' + (o.result === 'win' ? 'win' : 'loss'));
+      d.appendChild(el('span', 'onm', o.name || ''));
+      d.appendChild(civIcon(o.civ, o.civ_icon));
+      c7.appendChild(d);
+    });
+    row.appendChild(c7);
+
+    // 大小
+    const c8 = el('div', 'statuscell');
+    if (e.size) c8.appendChild(el('span', 'st-done', (e.size / 1048576).toFixed(1) + ' MB'));
+    else c8.appendChild(el('span', e.playable ? 'st-avail' : 'st-bad', e.playable ? '可下载' : '无副本'));
+    row.appendChild(c8);
+
+    // 操作
+    const c9 = el('div', 'actcell');
+    const bp = el('button', 'act play', '▶');
+    bp.title = '播放这一场';
+    bp.onclick = () => playCustom(e);
+    const bd = el('button', 'act', '↗');
+    bd.title = e.path || '没有本地文件';
+    bd.onclick = () => toast(e.path || '这是手动登记的对局，没有本地文件');
+    // 只有能对上 game_id 的条目才收藏（本地 .rec 没有 game_id）
+    if (e.game_id) c9.appendChild(favButton(e.game_id));
+    c9.appendChild(bp); c9.appendChild(bd);
+    row.appendChild(c9);
+
+    box.appendChild(row);
+  });
+
+  // 懒加载：把还没 api 数据的 network 条目送去补查。
+  // 必须记住「这批已经问过了」—— 自定义对局本来就不在 AoE4World 上，补查结果永远是
+  // 「查不到」，于是 need 永远非空，每轮渲染都再发一次请求 + 300ms 后再加载，1 req/s 死循环。
+  ENRICH_TRIED = ENRICH_TRIED || new Set();
+  const need = list
+    .filter(e => e.source === 'network' && e.game_id && !e.api && !ENRICH_TRIED.has(e.game_id))
+    .slice(0, 30)
+    .map(e => e.game_id);
+  if (need.length && !window.__enriching) {
+    need.forEach(id => ENRICH_TRIED.add(id));
+    window.__enriching = true;
+    api('/api/custom/enrich', { game_ids: need })
+      .then(() => { window.__enriching = false; setTimeout(loadCustom, 300); })
+      .catch(() => { window.__enriching = false; });
+  }
+}
+
+async function playCustom(e) {
+  try {
+    const r = await api('/api/custom/play', { path: e.path || null, game_id: e.game_id || null });
+    if (r.stage === 'downloading') { toast('⏳ 本地没有，正在下载…', 5000); return; }
+    if (r.ok) toast(`已启动\n${r.command}`, 6000);
+    else toast(r.message || '启动失败', 5000);
+  } catch (err) { toast(err.message); }
+}
+
+$('#tab-ranked').onclick = () => switchView('ranked');
+$('#tab-custom').onclick = () => switchView('custom');
+if ($('#tab-fav')) $('#tab-fav').onclick = () => switchView('fav');
+if ($('#fav-q')) $('#fav-q').oninput = () => renderFavorites();
+if ($('#f-owner')) $('#f-owner').onchange = () => renderCustom();
+if ($('#f-pack')) $('#f-pack').onchange = () => renderCustom();
+// ---------- 自定义页：勾选 / 下载 / 移除 ----------
+function updateCustomSel() {
+  const el2 = $('#custom-sel');
+  if (el2) el2.textContent = `已选 ${customSel.size}`;
+  const dl = $('#btn-custom-dl');
+  const rm = $('#btn-custom-remove');
+  if (dl) dl.disabled = !customSel.size;
+  if (rm) rm.disabled = !customSel.size;
+  // 有被移除的条目时才显示「恢复已移除」
+  const rs = $('#btn-custom-restore');
+  if (rs) {
+    const n = (CUSTOM && CUSTOM.hidden_count) || 0;
+    rs.style.display = n ? '' : 'none';
+    rs.textContent = `恢复已移除（${n}）`;
+  }
+}
+
+function selectedCustomGameIds() {
+  const ids = [];
+  for (const k of customSel) if (k.startsWith('g:')) ids.push(Number(k.slice(2)));
+  return ids.filter(Number.isFinite);
+}
+
+async function downloadCustomSelected() {
+  const ids = selectedCustomGameIds();
+  if (!ids.length) { toast('选中的条目里没有可下载的对局（本地 .rec 没有对局 ID）'); return; }
+  await download(ids);
+}
+
+async function downloadCustomAllMissing() {
+  const list = (CUSTOM && CUSTOM.entries) || [];
+  const ids = list.filter(e => e.game_id && !e.path).map(e => e.game_id);
+  if (!ids.length) { toast('列表里没有待下载的对局'); return; }
+  await download(ids);
+}
+
+async function removeCustomSelected() {
+  if (!customSel.size) { toast('先勾选要移除的条目'); return; }
+  const n = customSel.size;
+  if (!confirm(`从列表移除 ${n} 条？\n\n· 只影响界面显示\n· 本地文件一个都不删\n· 想看回来点「恢复已移除」`)) return;
+  try {
+    const r = await api('/api/custom/hide', { keys: [...customSel] });
+    customSel.clear();
+    toast(`已从列表移除 ${n} 条（文件未动）· 当前共移除 ${r.total} 条`, 5000);
+    loadCustom();
+  } catch (e) { toast(e.message); }
+}
+
+async function restoreCustomHidden() {
+  try {
+    const r = await api('/api/custom/unhide', {});
+    toast(`已恢复全部被移除的条目（剩 ${r.total} 条）`);
+    loadCustom();
+  } catch (e) { toast(e.message); }
+}
+
+$('#btn-custom-dl').onclick = downloadCustomSelected;
+$('#btn-custom-dlall').onclick = downloadCustomAllMissing;
+$('#btn-custom-remove').onclick = removeCustomSelected;
+$('#btn-custom-restore').onclick = restoreCustomHidden;
+
+$('#btn-watch').onclick = async () => {
+  try {
+    const r = await api('/api/custom/watch', {});
+    toast(r.ok ? `已在监听 ${r.dir}\n现在去游戏里点开任意一场录像即可` : '启动监听失败', 7000);
+    $('#btn-watch').className = 'tb-btn rec on';
+  } catch (e) { toast(e.message); }
+};
+$('#btn-custom-add').onclick = async () => {
+  const raw = $('#custom-id').value.trim();
+  if (!raw) { toast('先粘贴对局 ID 或地址'); return; }
+  const btn = $('#btn-custom-add');
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '下载中…';
+  try {
+    const r = await api('/api/custom/add', { raw });
+    if (!r.ok) { toast(r.message || '加入失败', 6000); return; }
+    if (r.probe === 'missing') {
+      toast('服务器上没有这场录像（不是本地问题）', 7000);
+    } else if (r.probe === 'unknown') {
+      toast(`查询失败，稍后重试：${(r.entry && r.entry.note) || '未知错误'}`, 8000);
+    } else if (r.fetched) {
+      const n = (r.entry && r.entry.players) ? r.entry.players.length : 0;
+      toast(`已下载并解析：${(r.entry && r.entry.map) || ''} · ${n} 名玩家`, 6000);
+    } else {
+      toast(`已加入列表，但解析失败：${r.fetch_error || '未知原因'}（点 ▶ 可重试）`, 9000);
+    }
+    $('#custom-id').value = '';
+    loadCustom();
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = old;
+  }
+};
+
+// 国旗：用 emoji 直接拼（country 是 ISO 3166 两字母）
+function countryFlag(code) {
+  const c = (code || '').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(c)) return '';
+  return String.fromCodePoint(...[...c].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65));
+}
+const COUNTRY_EN = {
+  CN: 'China', KR: 'South Korea', JP: 'Japan', TW: 'Taiwan', HK: 'Hong Kong',
+  US: 'United States', DE: 'Germany', FR: 'France', GB: 'United Kingdom',
+  RU: 'Russia', BR: 'Brazil', CA: 'Canada', AU: 'Australia', ES: 'Spain',
+  IT: 'Italy', PL: 'Poland', TR: 'Turkey', VN: 'Vietnam', TH: 'Thailand',
+  AR: 'Argentina', MX: 'Mexico', UA: 'Ukraine', NL: 'Netherlands',
+  SE: 'Sweden', NO: 'Norway', FI: 'Finland', DK: 'Denmark', PT: 'Portugal',
+  IN: 'India', SG: 'Singapore', MY: 'Malaysia', PH: 'Philippines', ID: 'Indonesia',
+};
+
+// 顶部横幅：国旗 + 国家 + 「MAINLY PLAYS <文明>」，与 AoE4World 一致
+function renderHero() {
+  const p = STATE && STATE.profile;
+  const flagEl = $('#flag'), ccEl = $('#hero-country'), mainEl = $('#hero-main');
+  if (!mainEl) return;
+  if (!p) {
+    if (flagEl) flagEl.textContent = '';
+    if (ccEl) ccEl.textContent = '';
+    mainEl.className = 'hero-main';
+    mainEl.style.color = '#7f8fa3';
+    mainEl.textContent = '未设置玩家 ID —— 点右上角「设置」填自己的 profile_id';
+    return;
+  }
+  if (flagEl) flagEl.textContent = countryFlag(p.country);
+  if (ccEl) {
+    const cc = (p.country || '').toUpperCase();
+    ccEl.textContent = COUNTRY_EN[cc] || cc || '—';
+  }
+
+  const top = p.top_civ || {};
+  if (top.civ) {
+    mainEl.className = 'hero-main';
+    mainEl.style.color = '';
+    const icon = top.icon ? `<img src="${escAttr(top.icon)}" alt="">` : '';
+    const n = top.games ? ` <b>· ${top.games} 场</b>` : '';
+    mainEl.innerHTML = `${icon}<span>MAINLY PLAYS <b>${escHtml(top.civ_zh || top.civ)}</b>${n}</span>`;
+  } else {
+    mainEl.className = 'hero-main';
+    mainEl.style.color = '#5d6f85';
+    mainEl.textContent = '暂无排位数据';
+  }
+}
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+const escAttr = escHtml;
+
+refresh();
+// 页面在后台标签页时不要每 2.5s 拉一次全量状态：/api/state 会扫库存 + 算每行的旗标
+setInterval(() => {
+  if (document.hidden) return;
+  if (Date.now() - lastFetch > 3000 && view === 'ranked') refresh();
+}, 2500);
+</script>
+</body>
+</html>
