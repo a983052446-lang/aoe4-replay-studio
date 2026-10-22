@@ -1,4 +1,4 @@
-﻿# AoE4 回放工作台
+# AoE4 回放工作台
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)]()
@@ -59,7 +59,7 @@ py --version         → 也行
 **第 2 步 · 拿到代码**
 
 ```
-git clone https://github.com/<你的用户名>/aoe4-replay-studio.git
+git clone https://github.com/a983052446-lang/aoe4-replay-studio.git
 ```
 
 或者网页上 **Code → Download ZIP** 解压。**别放在中文路径太深的目录**（虽然支持，但省事）。
